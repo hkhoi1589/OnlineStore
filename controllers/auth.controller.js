@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 
 const {
 	handlePassword,
-	comparePassword,
 	createAccessToken,
 	createRefreshToken,
 	getTokenExp,
@@ -22,6 +21,7 @@ exports.Register = async (req, res) => {
 			postalCode,
 			telephoneNumber,
 			birthday,
+			avatar,
 		} = req.body;
 
 		// Hash password
@@ -34,7 +34,6 @@ exports.Register = async (req, res) => {
 			parseInt(bdayParts[0], 10)
 		);
 		const success = await User.createUser(
-			req.customerID,
 			email,
 			firstName,
 			lastName,
@@ -44,20 +43,21 @@ exports.Register = async (req, res) => {
 			postalCode,
 			password,
 			telephoneNumber,
-			birthdayParsed
+			birthdayParsed,
+			avatar
 		);
 
-		const access_token = createAccessToken({ id: req.customerID });
-		const refresh_token = createRefreshToken({ id: req.customerID });
-		const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
-
 		if (success) {
-			req.customer.user = true;
+			const user = await User.FindEmail(email);
+			const access_token = createAccessToken({ id: user.customer_id });
+			const refresh_token = createRefreshToken({ id: user.customer_id });
+			const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
 			return res.json({
 				status: 200,
 				access_token,
 				refresh_token,
 				expires_at,
+				user,
 			});
 		} else {
 			return res.json({
@@ -75,11 +75,11 @@ exports.FindEmail = async (req, res) => {
 		const { email } = req.body;
 
 		// Find user
-		const user = await User.findOne({ email }).lean();
+		const user = await User.FindEmail(email);
 		if (!user) return res.json({ status: 404, message: 'This email does not exist.' });
 
-		const access_token = createAccessToken({ id: user._id });
-		const refresh_token = createRefreshToken({ id: user._id });
+		const access_token = createAccessToken({ id: user.customer_id });
+		const refresh_token = createRefreshToken({ id: user.customer_id });
 		const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
 
 		return res.json({
@@ -87,10 +87,7 @@ exports.FindEmail = async (req, res) => {
 			access_token,
 			refresh_token,
 			expires_at,
-			user: {
-				...user,
-				password: '',
-			},
+			user,
 		});
 	} catch (error) {
 		return res.status(500).send({ message: error.message, status: 500 });
@@ -105,26 +102,16 @@ exports.Login = async (req, res) => {
 		const validPassword = await User.validatePassword(email, password);
 		if (!validPassword) return res.json({ status: 400, message: 'Email or password invalid!' });
 
-		const assigned = await User.assignCustomerId(req.customerID, email);
-		if (assigned) {
-			req.customer.user = true;
-			const access_token = createAccessToken({ id: req.customerID });
-			const refresh_token = createRefreshToken({ id: req.customerID });
-			const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
-			const accountType = await User.userType(req.customerID);
-			return res.json({
-				status: 200,
-				accountType,
-				access_token,
-				refresh_token,
-				expires_at,
-			});
-		} else {
-			return res.json({
-				status: 404,
-				message: 'Something went wrong',
-			});
-		}
+		const access_token = createAccessToken({ id: validPassword.customer_id });
+		const refresh_token = createRefreshToken({ id: validPassword.customer_id });
+		const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
+		return res.json({
+			status: 200,
+			access_token,
+			refresh_token,
+			expires_at,
+			user: validPassword,
+		});
 	} catch (error) {
 		return res.status(500).send({ message: error.message, status: 500 });
 	}
@@ -139,12 +126,12 @@ exports.GenerateAccessToken = async (req, res) => {
 		jwt.verify(rf_token, process.env.REFRESH_TOKEN_SECRET, async (err, result) => {
 			if (err) return res.json({ status: 400, message: 'Please login now.' });
 
-			const user = await User.findById(result.id).select('-password');
+			const user = await User.userInfo(result.id);
 
 			if (!user) return res.json({ status: 404, message: 'This user does not exist.' });
 
-			const access_token = createAccessToken({ id: user._id });
-			const refresh_token = createRefreshToken({ id: user._id });
+			const access_token = createAccessToken({ id: user.customer_id });
+			const refresh_token = createRefreshToken({ id: user.customer_id });
 			const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
 
 			return res.json({
@@ -152,6 +139,7 @@ exports.GenerateAccessToken = async (req, res) => {
 				access_token,
 				refresh_token,
 				expires_at,
+				user,
 			});
 		});
 	} catch (error) {

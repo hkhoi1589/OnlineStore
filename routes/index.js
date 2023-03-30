@@ -22,7 +22,7 @@ const verifyToken = async (req, res, next) => {
 
 // RestFul Api
 function routes(app) {
-	app.use('/api/auth', authRoute); // github -> deploy -> tich hop vao client -> fix server neu can
+	app.use('/api/auth', authRoute);
 	//app.use('/api/user', verifyToken, userRoute);
 	//app.use('/api/post', verifyToken, postRoute);
 	app.use('/', (req, res) => res.send('Home Page'));

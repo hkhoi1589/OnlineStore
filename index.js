@@ -2,10 +2,8 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const routes = require('./routes');
-
-dotenv.config();
+const pool = require('./models');
 
 const app = express();
 app.use(
@@ -19,6 +17,14 @@ app.use(
 	})
 );
 app.use(express.json());
+
+pool.connect()
+	.then((client) => {
+		console.log('connected');
+		client.release();
+	})
+	.catch((err) => console.error('error connecting', err.stack))
+	.then(() => pool.end());
 
 // Route
 routes(app);

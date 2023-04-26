@@ -1,6 +1,6 @@
 const connection = require('./index');
 
-const getImages = async (req, res, productId) => {
+const getImages = async (productId) => {
 	const query = `select image_url 
                             from ProductImage
                             where product_id = $1`;

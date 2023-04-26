@@ -2,19 +2,19 @@ const Product = require('../models/product.model');
 const ProductImage = require('../models/productimage.model');
 
 // Get all
-exports.GetAll = async (req, res) => {
+exports.GetById = async (req, res) => {
+	const { id } = req.params;
 	try {
-		const product = await Product.getProduct(req, res, req.params.id);
-		const images = await ProductImage.getImages(req, res, req.params.id);
+		const product = await Product.getProduct(id);
+		const images = await ProductImage.getImages(id);
 		if (images.length === 1) images.push(images[0]);
 
-		const variantsData = await Product.getVariants(req, res, req.params.id);
+		const variantsData = await Product.getVariants(id);
 
-		const releatedProducts = await Product.getRelatedProducts(req, res, req.params.id, 9);
+		const releatedProducts = await Product.getRelatedProducts(id, 9);
 
 		return res.json({
 			status: 200,
-			userData: req.userData,
 			name: product.title,
 			description: product.description,
 			weight: product.weight_kilos,
@@ -26,6 +26,7 @@ exports.GetAll = async (req, res) => {
 			related: releatedProducts,
 		});
 	} catch (error) {
+		console.log(error.message);
 		return res.status(500).send({ message: error.message, status: 500 });
 	}
 };

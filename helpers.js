@@ -32,7 +32,7 @@ const getTokenExp = () => {
 
 const verifyKey = (token, secret_key) => {
 	const decoded = jwt.verify(token, secret_key);
-	return decoded;
+	return decoded.id;
 };
 
 const getUserId = (req) => {

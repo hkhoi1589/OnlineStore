@@ -1,7 +1,10 @@
 const router = require('express').Router(); //route
 const Category = require('../controllers/category.controller');
 
-// get
-router.get('/', Category.GetAll);
+// Get all category
+router.get('/', Category.GetAllCategory);
+
+// search category
+router.get('/search', Category.Search);
 
 module.exports = router;

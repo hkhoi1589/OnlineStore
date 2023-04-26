@@ -1,13 +1,13 @@
 const connection = require('./index');
 
-const getChildren = async (req, res, categoryId) => {
+const getChildren = async (categoryId) => {
 	const text = 'SELECT * FROM category WHERE parent_id IS NOT DISTINCT FROM $1';
 	const values = [categoryId === undefined ? null : categoryId];
 	const out = await connection.query(text, values);
 	return out.rows;
 };
 
-const getDetails = async (req, res, categoryId) => {
+const getDetails = async (categoryId) => {
 	const text = 'SELECT title, parent_id FROM category WHERE category_id = $1';
 	const values = [categoryId];
 	const out = await connection.query(text, values);

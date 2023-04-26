@@ -18,14 +18,6 @@ app.use(
 );
 app.use(express.json());
 
-pool.connect()
-	.then((client) => {
-		console.log('connected');
-		client.release();
-	})
-	.catch((err) => console.error('error connecting', err.stack))
-	.then(() => pool.end());
-
 // Route
 routes(app);
 

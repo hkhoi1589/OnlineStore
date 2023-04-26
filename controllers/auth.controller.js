@@ -1,12 +1,7 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 
-const {
-	handlePassword,
-	createAccessToken,
-	createRefreshToken,
-	getTokenExp,
-} = require('../helpers');
+const { createAccessToken, createRefreshToken, getTokenExp } = require('../helpers');
 
 exports.Register = async (req, res) => {
 	try {
@@ -24,15 +19,6 @@ exports.Register = async (req, res) => {
 			avatar,
 		} = req.body;
 
-		// Hash password
-		if (password) password = await handlePassword(password);
-
-		const bdayParts = birthday.split('/');
-		const birthdayParsed = new Date(
-			parseInt(bdayParts[2], 10),
-			parseInt(bdayParts[1], 10) - 1,
-			parseInt(bdayParts[0], 10)
-		);
 		const success = await User.createUser(
 			email,
 			firstName,
@@ -41,9 +27,9 @@ exports.Register = async (req, res) => {
 			addressLine2,
 			city,
 			postalCode,
+			birthday,
 			password,
 			telephoneNumber,
-			birthdayParsed,
 			avatar
 		);
 
@@ -52,12 +38,14 @@ exports.Register = async (req, res) => {
 			const access_token = createAccessToken({ id: user.customer_id });
 			const refresh_token = createRefreshToken({ id: user.customer_id });
 			const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
+
 			return res.json({
 				status: 200,
 				access_token,
 				refresh_token,
 				expires_at,
-				user,
+				name: user.name,
+				avatar: user.avatar,
 			});
 		} else {
 			return res.json({
@@ -69,14 +57,13 @@ exports.Register = async (req, res) => {
 	}
 };
 
-// chua xong
 exports.FindEmail = async (req, res) => {
 	try {
 		const { email } = req.body;
 
 		// Find user
 		const user = await User.FindEmail(email);
-		if (!user) return res.json({ status: 404, message: 'This email does not exist.' });
+		if (!user) return res.json({ status: 404, message: 'This user does not exist.' });
 
 		const access_token = createAccessToken({ id: user.customer_id });
 		const refresh_token = createRefreshToken({ id: user.customer_id });
@@ -87,7 +74,8 @@ exports.FindEmail = async (req, res) => {
 			access_token,
 			refresh_token,
 			expires_at,
-			user,
+			name: user.name,
+			avatar: user.avatar,
 		});
 	} catch (error) {
 		return res.status(500).send({ message: error.message, status: 500 });
@@ -105,12 +93,15 @@ exports.Login = async (req, res) => {
 		const access_token = createAccessToken({ id: validPassword.customer_id });
 		const refresh_token = createRefreshToken({ id: validPassword.customer_id });
 		const expires_at = getTokenExp(); // gia han access_token 1 days hien tai
+		delete validPassword.customer_id;
+
 		return res.json({
 			status: 200,
 			access_token,
 			refresh_token,
 			expires_at,
-			user: validPassword,
+			name: validPassword.name,
+			avatar: validPassword.avatar,
 		});
 	} catch (error) {
 		return res.status(500).send({ message: error.message, status: 500 });
@@ -126,7 +117,7 @@ exports.GenerateAccessToken = async (req, res) => {
 		jwt.verify(rf_token, process.env.REFRESH_TOKEN_SECRET, async (err, result) => {
 			if (err) return res.json({ status: 400, message: 'Please login now.' });
 
-			const user = await User.userInfo(result.id);
+			const user = await User.UserInfo(result.id);
 
 			if (!user) return res.json({ status: 404, message: 'This user does not exist.' });
 
@@ -139,7 +130,8 @@ exports.GenerateAccessToken = async (req, res) => {
 				access_token,
 				refresh_token,
 				expires_at,
-				user,
+				name: user.name,
+				avatar: user.avatar,
 			});
 		});
 	} catch (error) {
